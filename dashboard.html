@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>দোকানদার ড্যাশবোর্ড - SMART KING</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+    body { background: #f1f5f9; padding: 20px; }
+    .header { background: #0d47a1; color: white; padding: 15px 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .profile-card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .profile-card h3 { margin-bottom: 10px; color: #1e293b; font-size: 16px; }
+    .profile-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .profile-row input { flex: 1; min-width: 160px; padding: 8px 12px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
+    .btn-save { background: #0d47a1; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .table-card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+    th { background: #f8fafc; color: #475569; }
+    .badge-paid { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 12px; }
+    .badge-cash { background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 12px; }
+    .action-btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; margin-right: 5px; }
+    .btn-print { background: #16a34a; color: white; }
+    .btn-delete { background: #dc2626; color: white; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h2>🖨️ SMART KING - লাইভ প্রিন্ট ড্যাশবোর্ড</h2>
+  <span id="queueCount">অপেক্ষারত ফাইল: ০</span>
+</div>
+
+<div class="profile-card">
+  <h3>⚙️ দোকানের তথ্য ও UPI সেটিংস (একবার সেভ করলেই স্থায়ী থাকবে)</h3>
+  <div class="profile-row">
+    <input type="text" id="shopName" placeholder="দোকানের নাম">
+    <input type="text" id="shopPhone" placeholder="মোবাইল নম্বর">
+    <input type="text" id="shopUpi" placeholder="UPI ID (যেখানে টাকা ঢুকবে)">
+    <input type="text" id="shopAddress" placeholder="দোকানের ঠিকানা">
+    <button class="btn-save" onclick="saveProfile()">সেভ করুন</button>
+  </div>
+</div>
+
+<div class="table-card">
+  <table>
+    <thead>
+      <tr>
+        <th>কাস্টমার</th>
+        <th>ফাইল</th>
+        <th>কপি ও টাইপ</th>
+        <th>টাকা</th>
+        <th>পেমেন্ট স্ট্যাটাস</th>
+        <th>অ্যাকশন</th>
+      </tr>
+    </thead>
+    <tbody id="queueBody">
+      <tr><td colspan="6" style="text-align:center; color:#94a3b8;">কোনো ফাইল নেই...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDNTxPFKCLAHa2IcfhMDNbYX_CeFdbQupg",
+    authDomain: "smartking-print.firebaseapp.com",
+    databaseURL: "https://smartking-print-default-rtdb.firebaseio.com",
+    projectId: "smartking-print",
+    storageBucket: "smartking-print.firebasestorage.app",
+    messagingSenderId: "946237333884",
+    appId: "1:946237333884:web:a88bcda0e140ef591404f9",
+    measurementId: "G-N4K72TDSLZ"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // প্রোফাইল লোড
+  db.ref("shopProfile").on("value", (snap) => {
+    const data = snap.val();
+    if(data) {
+      document.getElementById("shopName").value = data.name || "";
+      document.getElementById("shopPhone").value = data.phone || "";
+      document.getElementById("shopUpi").value = data.upi || "";
+      document.getElementById("shopAddress").value = data.address || "";
+    }
+  });
+
+  function saveProfile() {
+    db.ref("shopProfile").set({
+      name: document.getElementById("shopName").value,
+      phone: document.getElementById("shopPhone").value,
+      upi: document.getElementById("shopUpi").value,
+      address: document.getElementById("shopAddress").value
+    }).then(() => alert("দোকানের তথ্য সফলভাবে সেভ হয়েছে!"));
+  }
+
+  // লাইভ কিউ লোড
+  db.ref("printQueue").on("value", (snap) => {
+    const tbody = document.getElementById("queueBody");
+    tbody.innerHTML = "";
+    const data = snap.val();
+
+    if(!data) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#94a3b8;">কোনো অপেক্ষারত ফাইল নেই...</td></tr>';
+      document.getElementById("queueCount").innerText = "অপেক্ষারত ফাইল: ০";
+      return;
+    }
+
+    const keys = Object.keys(data);
+    document.getElementById("queueCount").innerText = `অপেক্ষারত ফাইল: ${keys.length}`;
+
+    keys.forEach((key) => {
+      const item = data[key];
+      const badgeClass = item.paymentStatus.includes('ONLINE') ? 'badge-paid' : 'badge-cash';
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><strong>${item.customerName}</strong></td>
+        <td>${item.fileName}</td>
+        <td>${item.copies} কপি (${item.printType})</td>
+        <td><strong>₹${item.amount}</strong></td>
+        <td><span class="${badgeClass}">${item.paymentStatus}</span></td>
+        <td>
+          <button class="action-btn btn-print" onclick="printDoc('${item.fileData}')">🖨️ প্রিন্ট</button>
+          <button class="action-btn btn-delete" onclick="deleteDoc('${key}')">🗑️ ডিলিট</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  });
+
+  function printDoc(base64) {
+    const printWindow = window.open("");
+    if(base64.startsWith("data:application/pdf")) {
+      printWindow.document.write(`<iframe src="${base64}" frameborder="0" style="width:100%; height:100%;"></iframe>`);
+    } else {
+      printWindow.document.write(`<img src="${base64}" style="max-width:100%;" onload="window.print(); window.close();" />`);
+    }
+  }
+
+  function deleteDoc(key) {
+    if(confirm("ফাইলটি কি ডিলিট করতে চান?")) {
+      db.ref("printQueue").child(key).remove();
+    }
+  }
+</script>
+</body>
+</html>

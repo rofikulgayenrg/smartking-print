@@ -48,11 +48,11 @@
     </div>
     <div>
       <label>UPI ID (টাকা জমার জন্য):</label>
-      <input type="text" id="shopUpi" placeholder="7718489405@upi">
+      <input type="text" id="shopUpi" placeholder="7718489405@ybl">
     </div>
     <div>
       <label>B&W রেট (প্রতি পাতা ₹):</label>
-      <input type="number" id="bwRate" placeholder="3" value="3">
+      <input type="number" id="bwRate" placeholder="5" value="5">
     </div>
     <div>
       <label>কালার রেট (প্রতি পাতা ₹):</label>
@@ -84,6 +84,9 @@
   </table>
 </div>
 
+<!-- Auto Print Iframe Container -->
+<iframe id="printFrame" style="display:none; width:0; height:0; border:0;"></iframe>
+
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyDNTxPFKCLAHa2IcfhMDNbYX_CeFdbQupg",
@@ -103,9 +106,9 @@
     if(data) {
       document.getElementById("shopName").value = data.name || "টেলিকম সাইবার ক্যাফ";
       document.getElementById("shopPhone").value = data.phone || "7718489405";
-      document.getElementById("shopUpi").value = data.upi || "7718489405@upi";
-      document.getElementById("shopAddress").value = data.address || "চোরগেড়িয়া, সিহড়, কোতুলপুর, বাঁকুড়া - 722161";
-      document.getElementById("bwRate").value = data.bwRate || 3;
+      document.getElementById("shopUpi").value = data.upi || "7718489405@ybl";
+      document.getElementById("shopAddress").value = data.address || "চোরগেড়িয়া, সিহড়, কোতুলপুর, বাঁকুড়া, পশ্চিমবঙ্গ";
+      document.getElementById("bwRate").value = data.bwRate || 5;
       document.getElementById("colorRate").value = data.colorRate || 10;
     }
   });
@@ -116,7 +119,7 @@
       phone: document.getElementById("shopPhone").value,
       upi: document.getElementById("shopUpi").value,
       address: document.getElementById("shopAddress").value,
-      bwRate: parseInt(document.getElementById("bwRate").value) || 3,
+      bwRate: parseInt(document.getElementById("bwRate").value) || 5,
       colorRate: parseInt(document.getElementById("colorRate").value) || 10
     }).then(() => alert("দোকানের তথ্য ও রেট সফলভাবে সেভ হয়েছে!"));
   }
@@ -147,7 +150,7 @@
         <td><strong>₹${item.amount}</strong></td>
         <td><span class="${badgeClass}">${item.paymentStatus}</span></td>
         <td>
-          <button class="action-btn btn-print" onclick="printDoc('${item.fileData}')">🖨️ প্রিন্ট</button>
+          <button class="action-btn btn-print" onclick="autoPrintA4('${item.fileData}')">🖨️ প্রিন্ট</button>
           <button class="action-btn btn-delete" onclick="deleteDoc('${key}')">🗑️ ডিলিট</button>
         </td>
       `;
@@ -155,13 +158,61 @@
     });
   });
 
-  function printDoc(base64) {
-    const printWindow = window.open("");
-    if(base64.startsWith("data:application/pdf")) {
-      printWindow.document.write(`<iframe src="${base64}" frameborder="0" style="width:100%; height:100%;"></iframe>`);
-    } else {
-      printWindow.document.write(`<img src="${base64}" style="max-width:100%;" onload="window.print(); window.close();" />`);
+  // Direct A4 Auto Print Function
+  function autoPrintA4(base64) {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Browser popup blocked! দয়া করে পপআপ Allow করুন।");
+      return;
     }
+
+    let contentHtml = "";
+    if (base64.startsWith("data:application/pdf")) {
+      contentHtml = `<embed src="${base64}" type="application/pdf" width="100%" height="100%" />`;
+    } else {
+      contentHtml = `<img src="${base64}" style="width:100%; max-height:100%; object-fit:contain;" />`;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Print Document - A4</title>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 5mm;
+          }
+          html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fff;
+          }
+          img, embed {
+            max-width: 100%;
+            max-height: 100%;
+          }
+        </style>
+      </head>
+      <body>
+        ${contentHtml}
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.focus();
+              window.print();
+            }, 500);
+          };
+        <\/script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
   }
 
   function deleteDoc(key) {

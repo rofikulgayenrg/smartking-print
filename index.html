@@ -27,6 +27,18 @@
     .btn-cash { background: #16a34a; color: #fff; }
     .status-msg { display: none; padding: 12px; border-radius: 8px; text-align: center; font-size: 14px; margin-top: 10px; }
     .success { background: #dcfce7; color: #166534; display: block; }
+    
+    /* পেমেন্ট অপশন পপ-আপ (QR কোড ও ডাইরেক্ট অ্যাপ) */
+    .qr-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 999; }
+    .qr-content { background: white; padding: 20px; border-radius: 16px; text-align: center; width: 90%; max-width: 340px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    .qr-content img { width: 180px; height: 180px; margin: 8px 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+    .btn-direct-app { background: #2563eb; color: white; padding: 11px; width: 100%; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-done { background: #16a34a; color: white; padding: 11px; width: 100%; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 8px; }
+    .btn-cancel { background: #64748b; color: white; padding: 8px; width: 100%; border: none; border-radius: 8px; font-weight: bold; font-size: 13px; margin-top: 8px; cursor: pointer; }
+    .divider { display: flex; align-items: center; text-align: center; margin: 10px 0; color: #94a3b8; font-size: 12px; font-weight: bold; }
+    .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #e2e8f0; }
+    .divider:not(:empty)::before { margin-right: .5em; }
+    .divider:not(:empty)::after { margin-left: .5em; }
   </style>
 </head>
 <body>
@@ -34,7 +46,7 @@
 <div class="card">
   <div class="shop-header">
     <h2 id="shopNameDisplay">টেলিকম সাইবার ক্যাফ</h2>
-    <p id="shopAddressDisplay">চোরগেড়িয়া, সিহড়, কোতুলপুর, বাঁকুড়া, পশ্চিমবঙ্গ - 722161</p>
+    <p id="shopAddressDisplay">চোরগেড়িয়া, সিহড়, কোতুলপুর, বাঁকুড়া, পশ্চিমবঙ্গ</p>
     <div class="contact" id="shopPhoneDisplay">📞 যোগাযোগ: 7718489405</div>
   </div>
 
@@ -52,7 +64,7 @@
     <div class="col form-group">
       <label>প্রিন্ট টাইপ:</label>
       <select id="printType" onchange="calculateTotal()">
-        <option value="bw" id="bwOpt">B&W (ব্ল্যাক) - ₹৩</option>
+        <option value="bw" id="bwOpt">B&W (ব্ল্যাক) - ₹৫</option>
         <option value="color" id="colorOpt">কালার (Color) - ₹১০</option>
       </select>
     </div>
@@ -64,17 +76,42 @@
 
   <div class="price-box">
     <span>মোট প্রদেয় টাকা</span>
-    <h3 id="totalDisplay">₹৩</h3>
+    <h3 id="totalDisplay">₹৫</h3>
   </div>
 
-  <button class="btn btn-upi" id="btnUpi" onclick="processPayment('ONLINE')">
-    💳 অনলাইন পেমেন্ট (GPay / PhonePe)
+  <button class="btn btn-upi" id="btnUpi" onclick="openPaymentModal()">
+    💳 অনলাইন পেমেন্ট (QR কোড / UPI অ্যাপ)
   </button>
   <button class="btn btn-cash" id="btnCash" onclick="processPayment('CASH')">
     💵 কাউন্টারে ক্যাশ পেমেন্ট দিন
   </button>
 
   <div id="statusBox" class="status-msg"></div>
+</div>
+
+<!-- অনলাইন পেমেন্ট পপ-আপ: QR কোড + ডাইরেক্ট UPI অ্যাপ -->
+<div id="paymentModal" class="qr-modal">
+  <div class="qr-content">
+    <h3 style="color:#0d47a1; font-size:16px;">অনলাইন পেমেন্ট করুন</h3>
+    <p id="modalAmountText" style="font-size:14px; font-weight:bold; margin-top:4px; color:#16a34a;">প্রদেয় টাকা: ₹৫</p>
+    
+    <!-- ১ নম্বর বিকল্প: QR কোড স্ক্যান -->
+    <img id="qrImg" src="" alt="UPI QR Code">
+    <p style="font-size:11px; color:#64748b;">(GPay, PhonePe বা Paytm দিয়ে QR স্ক্যান করুন)</p>
+
+    <div class="divider">অথবা</div>
+
+    <!-- ২ নম্বর বিকল্প: সরাসরি UPI অ্যাপ ওপেন -->
+    <button class="btn-direct-app" onclick="payViaDirectUpi()">
+      📱 সরাসরি UPI অ্যাপে পে করুন (PhonePe/GPay)
+    </button>
+
+    <!-- কনফার্ম ও বাতিল বাটন -->
+    <button class="btn-done" onclick="confirmPaymentAndUpload()">
+      ✅ পেমেন্ট সম্পন্ন হয়েছে (ফাইল পাঠান)
+    </button>
+    <button class="btn-cancel" onclick="closePaymentModal()">বাতিল করুন</button>
+  </div>
 </div>
 
 <script>
@@ -91,9 +128,10 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  let upiId = "7718489405@upi";
-  let currentBwRate = 3;
+  let upiId = "7718489405@ybl";
+  let currentBwRate = 5;
   let currentColorRate = 10;
+  let currentUpiLink = "";
 
   db.ref("shopProfile").on("value", (snap) => {
     const data = snap.val();
@@ -120,6 +158,37 @@
     return total;
   }
 
+  function openPaymentModal() {
+    const file = document.getElementById("fileInput").files[0];
+    if(!file) { alert("অনুগ্রহ করে প্রথমে ফাইল সিলেক্ট করুন!"); return; }
+    
+    const amount = calculateTotal();
+    const name = document.getElementById("custName").value.trim() || "Customer";
+    
+    // Direct UPI লিঙ্ক এবং QR কোড তৈরি
+    currentUpiLink = `upi://pay?pa=${upiId}&pn=TelecomCyberCafe&am=${amount}&cu=INR&tn=Print-${name}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(currentUpiLink)}`;
+    
+    document.getElementById("qrImg").src = qrUrl;
+    document.getElementById("modalAmountText").innerText = `প্রদেয় টাকা: ₹${amount}`;
+    document.getElementById("paymentModal").style.display = "flex";
+  }
+
+  function closePaymentModal() {
+    document.getElementById("paymentModal").style.display = "none";
+  }
+
+  function payViaDirectUpi() {
+    if(currentUpiLink) {
+      window.location.href = currentUpiLink;
+    }
+  }
+
+  function confirmPaymentAndUpload() {
+    closePaymentModal();
+    processPayment('ONLINE');
+  }
+
   function processPayment(mode) {
     const file = document.getElementById("fileInput").files[0];
     const name = document.getElementById("custName").value.trim() || "Customer";
@@ -128,11 +197,6 @@
     const amount = calculateTotal();
     const copies = document.getElementById("copies").value;
     const printType = document.getElementById("printType").value;
-
-    if(mode === 'ONLINE') {
-      const upiUrl = `upi://pay?pa=${upiId}&pn=SmartKingPrint&am=${amount}&cu=INR&tn=Print-${name}`;
-      window.location.href = upiUrl;
-    }
 
     uploadToShop(file, name, amount, copies, printType, mode);
   }
@@ -157,7 +221,7 @@
         timestamp: Date.now()
       }).then(() => {
         statusBox.className = "status-msg success";
-        statusBox.innerHTML = "✅ ফাইল সফলভাবে দোকানে পৌঁছেছে!<br>অনুগ্রহ করে কাউন্টারে অপেক্ষা করুন।";
+        statusBox.innerHTML = "✅ ফাইল সফলভাবে দোকানে পৌঁছেছে!<br>কাউন্টারে প্রিন্ট সংগ্রহ করুন।";
         document.getElementById("fileInput").value = "";
       }).catch((err) => {
         alert("ত্রুটি: " + err.message);
